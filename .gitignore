@@ -1,0 +1,40 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+.eggs/
+*.pyo
+*.pyd
+*.pdb
+
+# --- Environments ---
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+.profile
+
+# --- Data & models ---
+data/*
+!data/.gitkeep
+models/
+checkpoints/
+*.h5
+*.pkl
+*.ckpt
+
+# --- Logs & outputs ---
+*.log
+*.out
+*.tmp
+*.swp
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
