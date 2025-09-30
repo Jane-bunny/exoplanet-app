@@ -23,6 +23,7 @@ ENV/
 # --- Data & models ---
 data/*
 !data/.gitkeep
+!data/processed/
 models/
 checkpoints/
 *.h5
