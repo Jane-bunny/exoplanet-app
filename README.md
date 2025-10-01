@@ -25,28 +25,30 @@ pip install -r requirements.txt
 python -m src.data_processing
 
 ## 📂 Project structure
+
+```
 exoplanet-app/
 │
 ├── data/
-│   ├── raw/           # raw input files (ignored by git)
-│   ├── processed/     # cleaned, aligned datasets (tracked)
-│   └── .gitkeep
+│ ├── raw/ # raw input files (ignored by git)
+│ ├── processed/ # cleaned, aligned datasets (tracked)
+│ └── .gitkeep
 │
-├── docs/              # documentation (e.g., data dictionary)
-├── figures/           # generated plots
-├── notebooks/         # exploration, preview, EDA, modeling
-│   ├── 01_data_processing.ipynb
-│   ├── 02_preview_processed.ipynb
-│   └── ...
+├── docs/ # documentation (e.g., data dictionary)
+├── figures/ # generated plots
+├── notebooks/ # exploration, preview, EDA, modeling
+│ ├── 01_data_processing.ipynb
+│ ├── 02_preview_processed.ipynb
+│ └── ...
 │
-├── src/               # source code
-│   ├── __init__.py
-│   ├── data_processing.py
-│   └── plots.py       # (optional, for reproducible visualisations)
+├── src/ # source code
+│ ├── init.py
+│ ├── data_processing.py
+│ └── plots.py # (optional, for reproducible visualisations)
 │
 ├── README.md
 └── requirements.txt
-
+```
 ## 📓 Notebooks
 
 The notebooks document different stages of the workflow:
