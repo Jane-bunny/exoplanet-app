@@ -19,10 +19,13 @@ pip install --upgrade pip
 ```
 
 ## Dependencies
+```
 pip install -r requirements.txt
-
+```
 ## Usage
+```
 python -m src.data_processing
+```
 
 ## 📂 Project structure
 
