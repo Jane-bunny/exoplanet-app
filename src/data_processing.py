@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 import argparse
+from typing import Optional, Tuple, Dict
 import pandas as pd
 
 # ---------- IO helpers ----------
@@ -91,8 +92,97 @@ def clean_tess_df(df: pd.DataFrame, drop_known_planets: bool = True) -> pd.DataF
     out["disposition_aligned"] = out["disposition"].map(TESS_DISP_MAP)
     return out
 
-# ---------- CLI / script entry ----------
+# ---------- Physical filtering ----------
+def default_physical_bounds() -> Dict[str, Tuple[Optional[float], Optional[float]]]:
+    """Nominal, permissive bounds for planet/star properties (units noted)."""
+    return {
+        # planets
+        "planet_radius":    (0.5, 30),       # R_earth   (Jupiter ~11.2 R_earth)
+        "equilibrium_temp": (50, 5000),      # K
+        "insolation_flux":  (1e-4, 1e5),     # S_earth
+        "orbital_period":   (0.1, 1000),     # days
+        "transit_duration": (0.2, 50),       # hours
+        "transit_depth":    (10, 500000),    # ppm (10 ppm to 50% = 5e5 ppm)
+        # host stars
+        "stellar_teff":     (2500, 12000),   # K (M to early A)
+        "stellar_logg":     (3.0, 5.5),      # log10(cm/s^2)
+        "stellar_radius":   (0.1, 10),       # R_sun
+    }
 
+def filter_physical(
+    df: pd.DataFrame,
+    *,
+    col_radius: str = "planet_radius",            # R_earth
+    col_teq: str = "equilibrium_temp",            # K
+    col_insol: Optional[str] = "insolation_flux", # S_earth
+    col_period: Optional[str] = "orbital_period", # days
+    col_dur: Optional[str] = "transit_duration",  # hours
+    col_depth: Optional[str] = "transit_depth",   # ppm
+    col_st_teff: Optional[str] = "stellar_teff",  # K
+    col_st_logg: Optional[str] = "stellar_logg",  # log10(cm/s^2)
+    col_st_rad: Optional[str] = "stellar_radius", # R_sun
+    bounds: Optional[Dict[str, Tuple[Optional[float], Optional[float]]]] = None,
+    drop_na_in: Tuple[str, ...] = (),
+    coerce_numeric: bool = True,
+    return_summary: bool = False,
+) -> pd.DataFrame | tuple[pd.DataFrame, dict]:
+    """
+    Filter rows by physically plausible ranges without altering columns or units.
+    Returns a filtered copy of df (or (df, summary) if return_summary=True).
+    """
+    if bounds is None:
+        bounds = default_physical_bounds()
+
+    mask = pd.Series(True, index=df.index)
+
+    def _apply_bound(col_name: Optional[str], key: str) -> None:
+        nonlocal mask
+        if col_name is None or col_name not in df.columns:
+            return
+        lo, hi = bounds.get(key, (None, None))
+        s = df[col_name]
+        if coerce_numeric and (s.dtype.kind in ("O", "U", "S") or pd.api.types.is_object_dtype(s)):
+            s = pd.to_numeric(s, errors="coerce")
+
+        cond = pd.Series(True, index=s.index, dtype=bool)
+        if lo is not None:
+            cond &= (s >= lo)
+        if hi is not None:
+            cond &= (s <= hi)
+        mask &= cond
+
+    _apply_bound(col_radius,   "planet_radius")
+    _apply_bound(col_teq,      "equilibrium_temp")
+    _apply_bound(col_insol,    "insolation_flux")
+    _apply_bound(col_period,   "orbital_period")
+    _apply_bound(col_dur,      "transit_duration")
+    _apply_bound(col_depth,    "transit_depth")
+    _apply_bound(col_st_teff,  "stellar_teff")
+    _apply_bound(col_st_logg,  "stellar_logg")
+    _apply_bound(col_st_rad,   "stellar_radius")
+
+    if drop_na_in:
+        mask &= df[list(drop_na_in)].notna().all(axis=1)
+
+    out = df.loc[mask].copy()
+
+    if not return_summary:
+        return out
+
+    summary = {
+        "n_in": int(len(df)),
+        "n_out": int(len(out)),
+        "kept_frac": float(len(out) / max(1, len(df))),
+        "bounds_used": {k: v for k, v in bounds.items() if v is not None},
+        "columns_checked": [c for c in [
+            col_radius, col_teq, col_insol, col_period, col_dur, col_depth, col_st_teff, col_st_logg, col_st_rad
+        ] if c is not None and c in df.columns],
+        "drop_na_in": list(drop_na_in),
+        "coerce_numeric": coerce_numeric,
+    }
+    return out, summary
+
+# ---------- CLI / script entry ----------
 def main():
     parser = argparse.ArgumentParser(description="Clean Kepler & TESS catalogs to a common schema.")
     parser.add_argument("--raw-dir", type=str, default=None, help="Path to data/raw")
